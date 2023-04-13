@@ -58,7 +58,7 @@ on location.location_id = dept.location_id
 where
 country_id='US'
 and 
-not employee.first_name='Nancy';
+lower(employee.first_name) <> 'nancy';
 
 -- Question 6
 -- Fetch max salary,min salary and avg salary by job id and department id but only for folks who worked in more than one role(job) in a department.
@@ -75,20 +75,20 @@ group by j1.job_id,j1.department_id;
 -- Display the employee count in each department and also in the same result.
 -- Info: * the total employee count categorized as "Total"
 -- • the null department count categorized as "-" *
--- SELECT COALESCE(TO_VARCHAR(e.department_id), '-') as department_id,
---        COUNT(*) as employee_count 
--- FROM  employee e
--- GROUP BY e.department_id;
-SELECT COALESCE(TO_VARCHAR(e.department_id), '-') as department_id,
-       COUNT(*) as employee_count 
-FROM  employee e
-GROUP BY e.department_id
 
+SELECT 
+CASE 
+WHEN e.department_id IS NULL THEN '-'
+ELSE TO_VARCHAR(e.department_id)
+END AS department_id,
+COUNT(*) as employee_count 
+FROM employee e
+GROUP BY department_id
 UNION
-
 SELECT 'Total' as department_id,
        COUNT(*) as employee_count 
 FROM employee;
+
 
 
 -- Question 8
@@ -226,14 +226,12 @@ group by e.region_name,e.department_id,e.count_of ;
  -- Select the list of all employees who work either for one or more departments or have not yet joined / allocated to any department
  -- select emp.employee_id,iff(count(emp.department_id)=0, 'Not Yet Joined','Allocated') as status from employee emp group by emp.employee_id,emp.department_id;
  select concat(e.first_name,' ',e.last_name) as full_name from employee e
-left join departments d on e.department_id = d.department_id
-where d.department_id is null or e.department_id is not null;
+left join departments d on e.department_id = d.department_id;
 
-
- 
  -- Question 15
  -- write a SQL query to find the employees and their respective managers. Return the first name, last name of the employees and their managers
  -- select concat(e1.first_name,' ',e1.last_name) as Employee_name,concat(e2.first_name,' ',e2.last_name) as Manager_name from employee e1 join employee e2 on e1.manager_id = e2.employee_id;
+select * from employee;
  SELECT CONCAT(e1.first_name, ' ', e1.last_name) AS Employee_name,
 CONCAT(e2.first_name, ' ', e2.last_name) AS Manager_name
 FROM employee e1
@@ -250,8 +248,8 @@ LEFT OUTER JOIN locations loc ON dept.location_id = loc.location_id;
   -- write a SQL query to list the employees (first_name , last_name, department_name) who belong to a department or don't
 SELECT emp.first_name, emp.last_name, dept.department_name
 FROM employee emp 
-LEFT JOIN departments dept ON emp.department_id = dept.department_id
-WHERE dept.department_name IS NULL OR dept.department_name IS NOT NULL;
+LEFT JOIN departments dept ON emp.department_id = dept.department_id;
+
   
  -- Question 18
   -- The HR decides to make an analysis of the employees working in every department.
@@ -302,15 +300,10 @@ select first_name,last_name,phone_number from employee where DATEDIFF(month,hire
 -- Display Employee id, first_name, last name, hire_date and salary for employees 
 -- who has the highest salary for each hiring year. 
 -- (For eg: John and Deepika joined on year 2023, and john has a salary of 5000, and Deepika has a salary of 6500. Output should show Deepika’s details only).
-SELECT emp.employee_id, emp.first_name, emp.last_name, emp.hire_date, e.salary
+SELECT emp.employee_id, emp.first_name, emp.last_name, emp.hire_date, emp.salary
 FROM (
-SELECT employee_id, first_name, last_name, hire_date, salary,
-ROW_NUMBER() OVER (PARTITION BY YEAR(hire_date) ORDER BY salary DESC) AS salary_rank
-FROM employee
+  SELECT employee_id, first_name, last_name, hire_date, salary,
+    ROW_NUMBER() OVER (PARTITION BY YEAR(hire_date) ORDER BY salary DESC) AS salary_rank
+  FROM employee
 ) emp
-JOIN (
-SELECT employee_id, salary, YEAR(hire_date) AS yr,
-ROW_NUMBER() OVER (PARTITION BY YEAR(hire_date) ORDER BY salary DESC) AS salary_rank
-FROM employee
-) e ON emp.employee_id = e.employee_id AND YEAR(emp.hire_date) = e.yr
-WHERE emp.salary_rank = 1 AND e.salary_rank = 1;
+WHERE emp.salary_rank = 1;
